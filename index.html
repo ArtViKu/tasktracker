@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d0f;--surface:#141418;--surface2:#1c1c22;--surface3:#232330;--border:#2a2a38;--accent:#e8ff47;--accent2:#ff6b47;--accent3:#47b8ff;--green:#47ff8a;--text:#e8e8f0;--muted:#666680;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:0.2;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:20px 24px;}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.5px;}.logo span{color:var(--accent);}
+#date-display{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);}
+.tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:18px;width:fit-content;}
+.tab{background:none;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;}
+.tab.active{background:var(--surface2);color:var(--text);}
+.tab:hover:not(.active){color:var(--text);}
+.stats{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-family:'Space Mono',monospace;font-size:10px;display:flex;align-items:center;gap:7px;}
+.stat-pill .num{color:var(--accent);font-weight:700;font-size:15px;}
+.view{display:none;}.view.active{display:block;}
+.main-grid{display:grid;grid-template-columns:1fr 265px;gap:16px;align-items:start;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.kanban-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;min-height:180px;}
+.col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.col-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.col-count{background:var(--surface2);border-radius:20px;padding:2px 7px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);}
+.col-todo .col-title{color:#9090b8;}.col-doing .col-title{color:var(--accent3);}.col-done .col-title{color:var(--green);}.col-blocked .col-title{color:var(--accent2);}
+.task-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 10px 10px 13px;margin-bottom:7px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.col-todo .task-card::before{background:#9090b8;}.col-doing .task-card::before{background:var(--accent3);}.col-done .task-card::before{background:var(--green);}.col-blocked .task-card::before{background:var(--accent2);}
+.task-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.card-top{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px;}
+.card-emoji{font-size:15px;flex-shrink:0;line-height:1.2;}
+.task-name{font-size:12px;font-weight:700;line-height:1.3;flex:1;}
+.col-done .task-name{text-decoration:line-through;color:var(--muted);}
+.task-desc-preview{font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;}
+.tag{font-size:9px;padding:2px 5px;border-radius:3px;font-weight:700;letter-spacing:.3px;background:var(--surface3);color:var(--muted);border:1px solid var(--border);}
+.task-meta{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.task-project{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;}
+.proj-0{background:#1a2a4a;color:var(--accent3);}.proj-1{background:#2a1a3a;color:#c847ff;}.proj-2{background:#1a3a2a;color:var(--green);}.proj-3{background:#3a2a1a;color:#ffb347;}.proj-custom{background:var(--surface3);color:var(--muted);}
+.task-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
+.pomo-bar{display:flex;gap:2px;margin-top:4px;flex-wrap:wrap;}
+.pomo-dot{width:6px;height:6px;border-radius:50%;background:var(--border);}.pomo-dot.done{background:var(--accent);}
+.card-actions{position:absolute;top:5px;right:5px;display:flex;gap:2px;opacity:0;transition:opacity .15s;}
+.task-card:hover .card-actions{opacity:1;}
+.card-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:3px;border-radius:3px;transition:all .15s;line-height:1;}
+.card-btn:hover{color:var(--text);background:var(--surface3);}.card-btn.del:hover{color:var(--accent2);}
+.add-task{margin-top:6px;}
+.add-task input{width:100%;background:transparent;border:1px dashed var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:'Syne',sans-serif;font-size:11px;outline:none;transition:border-color .2s;}
+.add-task input::placeholder{color:var(--muted);}.add-task input:focus{border-color:var(--accent);border-style:solid;}
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.timer-modes{display:flex;gap:3px;background:var(--surface2);border-radius:6px;padding:3px;margin-bottom:12px;}
+.mode-btn{flex:1;background:none;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:9px;font-weight:700;padding:5px;border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .15s;}
+.mode-btn.active{background:var(--surface);color:var(--text);}
+.timer-display{text-align:center;padding:6px 0;}
+.progress-ring-wrap{position:relative;width:88px;height:88px;margin:0 auto 10px;}
+.progress-ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{stroke:var(--surface2);}.ring-fill{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s ease;}
+.ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono',monospace;}
+.ring-time{font-size:16px;font-weight:700;color:var(--accent);}.ring-sub{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.timer-controls{display:flex;gap:5px;justify-content:center;margin-bottom:8px;}
+.btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 14px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.5px;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);color:#0d0d0f;border-color:var(--accent);}.btn.primary:hover{background:#d4e840;}
+.btn.danger{border-color:var(--accent2);color:var(--accent2);}
+.btn.green{border-color:var(--green);color:var(--green);}.btn.green:hover{background:rgba(71,255,138,.1);}
+.btn.sm{padding:5px 10px;font-size:10px;}.btn.full{width:100%;}
+.log-entry{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px;}
+.log-entry:last-child{border-bottom:none;}.log-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.log-task{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.log-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);flex-shrink:0;}
+.list-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.list-search{flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Space Mono',monospace;font-size:11px;outline:none;}
+.list-search::placeholder{color:var(--muted);}.list-search:focus{border-color:var(--accent);}
+.list-filter{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Syne',sans-serif;font-size:11px;outline:none;-webkit-appearance:none;}
+.list-filter:focus{border-color:var(--accent);}
+.task-list-table{width:100%;border-collapse:collapse;}
+.task-list-table th{text-align:left;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);}
+.task-list-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.task-list-table tr:last-child td{border-bottom:none;}
+.task-list-table tr:hover td{background:rgba(255,255,255,.015);}
+.tl-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.tl-desc{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.tl-status{font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;white-space:nowrap;}
+.s-todo{background:#1e1e35;color:#9090b8;}.s-doing{background:#0f2535;color:var(--accent3);}.s-done{background:#0f2a1a;color:var(--green);}.s-blocked{background:#2a0f0f;color:var(--accent2);}
+.tl-time{font-family:'Space Mono',monospace;font-size:11px;white-space:nowrap;}
+.tl-pomo{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);}
+.tl-actions{display:flex;gap:4px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:18px;}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;border-radius:5px;transition:all .15s;}
+.modal-close:hover{color:var(--text);background:var(--surface2);}
+.modal-section{margin-bottom:14px;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.form-label{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-family:'Syne',sans-serif;font-size:12px;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--muted);}
+.form-select option{background:var(--surface2);}
+.form-textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.form-row{display:flex;gap:8px;}
+.emoji-picker-wrap{position:relative;}
+.emoji-preview{width:46px;height:46px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:border-color .2s;flex-shrink:0;}
+.emoji-preview:hover{border-color:var(--accent);}
+.emoji-grid{position:absolute;top:52px;left:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;z-index:200;display:none;flex-wrap:wrap;gap:2px;width:256px;max-height:190px;overflow-y:auto;}
+.emoji-grid.open{display:flex;}
+.emoji-opt{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;border-radius:4px;transition:background .1s;}
+.emoji-opt:hover{background:var(--surface2);}
+.tags-input-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;transition:border-color .2s;cursor:text;min-height:38px;}
+.tags-input-wrap:focus-within{border-color:var(--accent);}
+.tag-chip{background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;}
+.tag-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;line-height:1;padding:0;}.tag-chip button:hover{color:var(--accent2);}
+.tags-input-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:'Syne',sans-serif;font-size:11px;min-width:70px;flex:1;}
+.tags-input-wrap input::placeholder{color:var(--muted);}
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.export-preview{margin-top:12px;background:var(--surface2);border-radius:8px;padding:12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);max-height:180px;overflow-y:auto;line-height:1.8;white-space:pre;}
+.notif{position:fixed;bottom:20px;right:20px;background:var(--accent);color:#0d0d0f;font-weight:700;font-size:12px;padding:10px 18px;border-radius:9px;z-index:1000;transform:translateY(70px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.notif.show{transform:translateY(0);}
+.adj-btn{background:var(--surface3);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 9px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;line-height:1;}
+.adj-btn:hover{border-color:var(--accent);color:var(--accent);}
+.adj-btn.big{padding:8px 11px;font-size:12px;}
+.timer-phase-focus{color:var(--accent);}
+.timer-phase-break{color:var(--accent3);}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:var(--surface);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+@media(max-width:1100px){.main-grid{grid-template-columns:1fr;}.kanban-board{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.kanban-board{grid-template-columns:1fr;}.stats{flex-wrap:wrap;}.export-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">TASK<span>FLOW</span></div>
+  <div id="date-display"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('kanban',this)">🗂 Kanban</button>
+  <button class="tab" onclick="switchTab('list',this)">📋 Список</button>
+  <button class="tab" onclick="switchTab('export',this)">📊 Экспорт</button>
+</div>
+
+<div class="stats">
+  <div class="stat-pill">📥 <span class="num" id="stat-pomo">0</span> To Do</div>
+  <div class="stat-pill">⚡ <span class="num" id="stat-doing">0</span> Doing</div>
+  <div class="stat-pill">✅ <span class="num" id="stat-done">0</span> Done</div>
+  <div class="stat-pill">🔥 <span class="num" id="stat-blocked">0</span> Blocked</div>
+  <div class="stat-pill">📌 <span class="num" id="stat-total">0</span> Tasks</div>
+  <div class="stat-pill">📋 <span class="num" id="stat-planned">0м</span> план</div>
+  <div class="stat-pill">⏱ <span class="num" id="stat-time">0м</span> факт</div>
+</div>
+
+<!-- KANBAN -->
+<div class="view active" id="view-kanban">
+  <div class="main-grid">
+    <div>
+      <div class="section-header">
+        <div class="section-title">// Kanban Board</div>
+        <button class="btn sm" onclick="openAddModal()">+ Новая задача</button>
+        <button class="btn sm" onclick="openImportModal()">📋 Импорт</button>
+      </div>
+      <div class="kanban-board">
+        <div class="kanban-col col-todo" id="col-todo" ondrop="drop(event,'📥 To Do')" ondragover="dragover(event)">
+          <div class="col-header"><span class="col-title">📥 To Do</span><span class="col-count" id="cnt-todo">0</span></div>
+          <div class="add-task"><input placeholder="+ Быстро добавить..." onkeydown="quickAdd(event,'📥 To Do')"></div>
+        </div>
+        <div class="kanban-col col-doing" id="col-doing" ondrop="drop(event,'⚡ Doing')" ondragover="dragover(event)">
+          <div class="col-header"><span class="col-title">⚡ Doing</span><span class="col-count" id="cnt-doing">0</span></div>
+          <div class="add-task"><input placeholder="+ Быстро добавить..." onkeydown="quickAdd(event,'⚡ Doing')"></div>
+        </div>
+        <div class="kanban-col col-done" id="col-done" ondrop="drop(event,'✅ Done')" ondragover="dragover(event)">
+          <div class="col-header"><span class="col-title">✅ Done</span><span class="col-count" id="cnt-done">0</span></div>
+          <div class="add-task"><input placeholder="+ Быстро добавить..." onkeydown="quickAdd(event,'✅ Done')"></div>
+        </div>
+        <div class="kanban-col col-blocked" id="col-blocked" ondrop="drop(event,'🔥 Blocked')" ondragover="dragover(event)">
+          <div class="col-header"><span class="col-title">🔥 Blocked</span><span class="col-count" id="cnt-blocked">0</span></div>
+          <div class="add-task"><input placeholder="+ Быстро добавить..." onkeydown="quickAdd(event,'🔥 Blocked')"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar">
+      <div class="sidebar-card" style="padding:18px 16px;">
+        <div class="section-title" style="margin-bottom:14px">// Pomodoro Timer</div>
+
+        <!-- Phase toggle -->
+        <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px;margin-bottom:18px;">
+          <button id="phase-focus" class="mode-btn active" onclick="switchPhase('focus')">🍅 Фокус</button>
+          <button id="phase-break" class="mode-btn" onclick="switchPhase('break')">☕ Перерыв</button>
+        </div>
+
+        <!-- Big clock, no ring -->
+        <div style="text-align:center;margin-bottom:18px;">
+          <div id="ring-time" class="timer-phase-focus" style="font-family:'Space Mono',monospace;font-size:52px;font-weight:700;line-height:1;letter-spacing:-2px;">25:00</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:6px;" id="ring-sub">focus · 25 min</div>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;gap:6px;margin-bottom:14px;">
+          <button class="btn primary" id="start-btn" onclick="toggleTimer()" style="flex:2">▶ START</button>
+          <button class="btn" onclick="resetTimer()" style="flex:1">↺</button>
+        </div>
+
+        <!-- Auto-break toggle -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-radius:8px;cursor:pointer;" onclick="toggleAutoBreak()">
+          <div>
+            <div style="font-size:11px;font-weight:700;">Авто-перерыв</div>
+            <div style="font-size:9px;color:var(--muted)">Фокус → перерыв автоматически</div>
+          </div>
+          <div id="auto-break-toggle" style="width:36px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0;">
+            <div id="auto-break-thumb" style="width:16px;height:16px;border-radius:50%;background:var(--muted);position:absolute;top:2px;left:2px;transition:all .2s;"></div>
+          </div>
+        </div>
+
+        <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;text-align:center;margin-top:12px;">
+          Сессия #<span id="session-count">1</span>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <div class="section-title" style="margin-bottom:8px">// Log</div>
+        <div id="pomo-log"><div style="color:var(--muted);font-size:10px;text-align:center;padding:10px 0">Нет записей</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIST -->
+<div class="view" id="view-list">
+  <div class="section-header">
+    <div class="section-title">// Список задач</div>
+    <div style="display:flex;gap:6px;"><button class="btn sm" onclick="openAddModal()">+ Новая задача</button><button class="btn sm" onclick="openImportModal()">📋 Импорт</button></div>
+  </div>
+  <div class="list-controls">
+    <input class="list-search" id="list-search" placeholder="🔍 Поиск по названию / описанию..." oninput="renderList()">
+    <select class="list-filter" id="filter-status" onchange="renderList()">
+      <option value="">Все статусы</option>
+      <option>📥 To Do</option><option>⚡ Doing</option><option>✅ Done</option><option>🔥 Blocked</option>
+    </select>
+    <select class="list-filter" id="filter-tag" onchange="renderList()"><option value="">Все теги</option></select>
+    <select class="list-filter" id="filter-project" onchange="renderList()"><option value="">Все проекты</option></select>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <table class="task-list-table">
+      <thead><tr>
+        <th>Задача</th><th>Статус</th><th>Теги</th><th>🍅</th><th>⏱ Время</th><th></th>
+      </tr></thead>
+      <tbody id="list-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="view" id="view-export">
+  <div class="section-header"><div class="section-title">// Экспорт данных</div></div>
+  <div class="export-grid">
+    <div class="sidebar-card">
+      <div class="section-title" style="margin-bottom:12px">Настройки CSV</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div><div class="form-label">Фильтр по статусу</div>
+          <select class="form-select" id="exp-status">
+            <option value="">Все</option>
+            <option>📥 To Do</option><option>⚡ Doing</option><option>✅ Done</option><option>🔥 Blocked</option>
+          </select>
+        </div>
+        <div><div class="form-label">Разделитель</div>
+          <select class="form-select" id="exp-sep">
+            <option value=",">Запятая (,)</option>
+            <option value=";">Точка с запятой (;)</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-desc" checked style="accent-color:var(--accent)"> Описание</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-tags" checked style="accent-color:var(--accent)"> Теги</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-pomo" checked style="accent-color:var(--accent)"> Помидоры</label>
+        </div>
+        <button class="btn primary full" onclick="previewCSV()">👁 Предпросмотр</button>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="section-title" style="margin-bottom:12px">Сводка по времени</div>
+      <div id="time-summary"></div>
+    </div>
+  </div>
+  <div class="sidebar-card" style="margin-top:14px;">
+    <div class="section-title" style="margin-bottom:8px">Предпросмотр CSV</div>
+    <div class="export-preview" id="csv-preview">Нажмите «Предпросмотр» для генерации</div>
+  </div>
+</div>
+
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeImportModal()">✕</button>
+    <div class="modal-title">📋 Импорт задач</div>
+    <div class="modal-section">
+      <div class="form-label">Вставьте список задач (каждая с новой строки)</div>
+      <textarea class="form-textarea" id="import-text" style="min-height:140px" placeholder="Написать тесты, 2&#10;Обновить документацию, 3&#10;Ревью PR от Антона&#10;Деплой на прод, 4"></textarea>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px;">Формат: <code style="background:var(--surface3);padding:1px 4px;border-radius:3px;">Название задачи, 3</code> — число после запятой = помидоров</div>
+    </div>
+    <div class="modal-section">
+      <div class="form-row">
+        <div style="flex:1;"><div class="form-label">Статус по умолчанию</div>
+          <select class="form-select" id="import-status">
+            <option>📥 To Do</option><option>⚡ Doing</option><option>✅ Done</option><option>🔥 Blocked</option>
+          </select>
+        </div>
+        <div style="flex:1;"><div class="form-label">Проект по умолчанию</div>
+          <input class="form-input" id="import-project" placeholder="💼 Work...">
+        </div>
+      </div>
+    </div>
+    <div id="import-preview" style="background:var(--surface2);border-radius:8px;padding:10px;font-size:11px;color:var(--muted);margin-bottom:4px;min-height:36px;"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeImportModal()">Отмена</button>
+      <button class="btn primary" onclick="doImport()">⬆ Импортировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title-text">Новая задача</div>
+
+    <div class="modal-section">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <div class="emoji-picker-wrap">
+          <div class="emoji-preview" id="emoji-preview" onclick="toggleEmojiPicker()" title="Выбрать иконку">📌</div>
+          <div class="emoji-grid" id="emoji-grid"></div>
+        </div>
+        <div style="flex:1;">
+          <div class="form-label">Название *</div>
+          <input class="form-input" id="m-name" placeholder="Название задачи...">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="form-label">Описание</div>
+      <textarea class="form-textarea" id="m-desc" placeholder="Подробное описание, заметки, ссылки..."></textarea>
+    </div>
+
+    <div class="modal-section">
+      <div class="form-row">
+        <div style="flex:1;"><div class="form-label">Статус</div>
+          <select class="form-select" id="m-status">
+            <option>📥 To Do</option><option>⚡ Doing</option><option>✅ Done</option><option>🔥 Blocked</option>
+          </select>
+        </div>
+        <div style="flex:1;"><div class="form-label">Проект</div>
+          <input class="form-input" id="m-project" placeholder="💼 Work, 🎮 Gaming...">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="form-label">Теги (Enter или запятая для добавления)</div>
+      <div class="tags-input-wrap" id="tags-wrap" onclick="document.getElementById('tag-input').focus()">
+        <input id="tag-input" placeholder="добавить тег..." onkeydown="handleTagInput(event)">
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="form-row">
+        <div style="flex:1;"><div class="form-label">🍅 Помидоров (план)</div>
+          <input class="form-input" type="number" id="m-pomo" min="0" max="20" placeholder="4">
+        </div>
+        <div style="flex:1;"><div class="form-label">🍅 Помидоров (факт)</div>
+          <input class="form-input" type="number" id="m-pomo-done" min="0" max="20" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Отмена</button>
+      <button class="btn primary" id="modal-save-btn" onclick="saveModal()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// DATA
+let tasks = JSON.parse(localStorage.getItem('tf3_tasks') || '[]');
+let pomLog = JSON.parse(localStorage.getItem('tf3_pom_log') || '[]');
+let todayPomos = parseInt(localStorage.getItem('tf3_today_pomos') || '0');
+
+function save() {
+  localStorage.setItem('tf3_tasks', JSON.stringify(tasks));
+  localStorage.setItem('tf3_pom_log', JSON.stringify(pomLog));
+  localStorage.setItem('tf3_today_pomos', String(todayPomos));
+}
+
+function notify(msg) {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 2200);
+}
+
+function formatTime(mins) {
+  if (!mins) return '0м';
+  if (mins < 60) return mins + 'м';
+  const h = Math.floor(mins/60), m = mins%60;
+  return h + 'ч' + (m ? ' ' + m + 'м' : '');
+}
+
+function totalMinutes(t) {
+  return (t.pomosDone || 0) * 25;
+}
+
+document.getElementById('date-display').textContent =
+  new Date().toLocaleDateString('ru-RU',{weekday:'short',year:'numeric',month:'short',day:'numeric'}).toUpperCase();
+
+// TABS
+function switchTab(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'list') renderList();
+  if (name === 'export') renderExport();
+}
+
+// STATS
+function updateStats() {
+  document.getElementById('stat-pomo').textContent = tasks.filter(t => t.status === '📥 To Do').length;
+  document.getElementById('stat-doing').textContent = tasks.filter(t => t.status === '⚡ Doing').length;
+  document.getElementById('stat-done').textContent = tasks.filter(t => t.status === '✅ Done').length;
+  document.getElementById('stat-blocked').textContent = tasks.filter(t => t.status === '🔥 Blocked').length;
+  document.getElementById('stat-total').textContent = tasks.length;
+  const totalMins = tasks.reduce((s, t) => s + totalMinutes(t), 0);
+  const plannedMins = tasks.reduce((s, t) => s + (t.pomosPlanned || 1) * 25, 0);
+  document.getElementById('stat-time').textContent = formatTime(totalMins);
+  document.getElementById('stat-planned').textContent = formatTime(plannedMins);
+}
+
+const PROJ_PRESETS = ['💼 Work', '🎮 Gaming', '🏔️ Personal', '🎵 Music'];
+function projectClass(p) {
+  const i = PROJ_PRESETS.indexOf(p);
+  return i >= 0 ? 'proj-' + i : 'proj-custom';
+}
+
+// KANBAN RENDER
+const STATUS_COLS = {
+  '📥 To Do': {colId:'col-todo', cntId:'cnt-todo'},
+  '⚡ Doing':  {colId:'col-doing', cntId:'cnt-doing'},
+  '✅ Done':   {colId:'col-done', cntId:'cnt-done'},
+  '🔥 Blocked':{colId:'col-blocked', cntId:'cnt-blocked'},
+};
+
+function renderKanban() {
+  const cols = {'📥 To Do':[], '⚡ Doing':[], '✅ Done':[], '🔥 Blocked':[]};
+  tasks.forEach(t => { if (cols[t.status]) cols[t.status].push(t); });
+
+  for (const [status, list] of Object.entries(cols)) {
+    const {colId, cntId} = STATUS_COLS[status];
+    const col = document.getElementById(colId);
+    col.querySelectorAll('.task-card').forEach(c => c.remove());
+    document.getElementById(cntId).textContent = list.length;
+
+    list.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.draggable = true;
+      card.dataset.id = t.id;
+      card.addEventListener('dragstart', dragstart);
+
+      const doneP = t.pomosDone || 0;
+      const planP = t.pomosPlanned || 1;
+      const dots = Array.from({length: Math.min(planP, 12)}, (_, i) =>
+        `<div class="pomo-dot ${i < doneP ? 'done' : ''}"></div>`).join('');
+      const tags = (t.tags || []).slice(0, 3).map(tg => `<span class="tag">${tg}</span>`).join('');
+      const mins = totalMinutes(t);
+
+      card.innerHTML = `
+        <div class="card-actions">
+          <button class="card-btn" onclick="openEditModal(${t.id},event)">✏️</button>
+          <button class="card-btn del" onclick="deleteTask(${t.id},event)">✕</button>
+        </div>
+        <div class="card-top">
+          <span class="card-emoji">${t.emoji || '📌'}</span>
+          <span class="task-name">${esc(t.name)}</span>
+        </div>
+        ${t.description ? `<div class="task-desc-preview">${esc(t.description)}</div>` : ''}
+        ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+        <div class="task-meta">
+          <span class="task-project ${projectClass(t.project)}">${t.project || '—'}</span>
+          <span class="task-time">${mins ? formatTime(mins) : ''}</span>
+          <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">🍅${doneP}/${planP}</span>
+        </div>
+        <div class="pomo-bar">${dots}</div>
+      `;
+      card.addEventListener('click', e => {
+        if (e.target.closest('.card-actions')) return;
+        incrementPomo(t.id);
+      });
+
+      const addInput = col.querySelector('.add-task');
+      col.insertBefore(card, addInput);
+    });
+  }
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderAll() {
+  renderKanban();
+  updateStats();
+  renderLog();
+}
+
+// LIST VIEW
+function renderList() {
+  const search = document.getElementById('list-search').value.toLowerCase();
+  const fs = document.getElementById('filter-status').value;
+  const ft = document.getElementById('filter-tag').value;
+  const fp = document.getElementById('filter-project').value;
+
+  const allTags = [...new Set(tasks.flatMap(t => t.tags || []))].sort();
+  const tagSel = document.getElementById('filter-tag');
+  const curTag = tagSel.value;
+  tagSel.innerHTML = '<option value="">Все теги</option>' + allTags.map(tg => `<option ${tg === curTag ? 'selected' : ''}>${tg}</option>`).join('');
+
+  const allProj = [...new Set(tasks.map(t => t.project).filter(Boolean))].sort();
+  const projSel = document.getElementById('filter-project');
+  const curProj = projSel.value;
+  projSel.innerHTML = '<option value="">Все проекты</option>' + allProj.map(p => `<option ${p === curProj ? 'selected' : ''}>${p}</option>`).join('');
+
+  let filtered = tasks.filter(t => {
+    if (fs && t.status !== fs) return false;
+    if (ft && !(t.tags || []).includes(ft)) return false;
+    if (fp && t.project !== fp) return false;
+    if (search && !t.name.toLowerCase().includes(search) && !(t.description || '').toLowerCase().includes(search) && !(t.tags||[]).join(' ').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const statusCls = {'📥 To Do':'s-todo','⚡ Doing':'s-doing','✅ Done':'s-done','🔥 Blocked':'s-blocked'};
+  const body = document.getElementById('list-body');
+
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-size:12px">Задач не найдено</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(t => {
+    const tags = (t.tags || []).map(tg => `<span class="tag">${tg}</span>`).join('');
+    const mins = totalMinutes(t);
+    return `<tr>
+      <td>
+        <div class="tl-name">${t.emoji || '📌'} ${esc(t.name)}</div>
+        ${t.description ? `<div class="tl-desc">${esc(t.description.substring(0, 120))}${t.description.length > 120 ? '…' : ''}</div>` : ''}
+      </td>
+      <td><span class="tl-status ${statusCls[t.status] || ''}">${t.status}</span></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:3px">${tags || '<span style="color:var(--muted)">—</span>'}</div></td>
+      <td class="tl-pomo">${t.pomosDone || 0}/${t.pomosPlanned || 1}</td>
+      <td class="tl-time" style="color:${mins ? 'var(--accent)' : 'var(--muted)'}">${mins ? formatTime(mins) : '—'}</td>
+      <td><div class="tl-actions">
+        <button class="btn sm" onclick="openEditModal(${t.id},event)">✏️</button>
+        <button class="btn sm danger" onclick="deleteTask(${t.id},event)">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// LOG
+function renderLog() {
+  const el = document.getElementById('pomo-log');
+  if (!pomLog.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:10px;text-align:center;padding:8px 0">Нет записей</div>';
+    return;
+  }
+  el.innerHTML = [...pomLog].reverse().slice(0, 7).map(l => `
+    <div class="log-entry">
+      <div class="log-dot"></div>
+      <div class="log-task">${esc(l.task)}</div>
+      <div class="log-time">${l.time}</div>
+    </div>`).join('');
+}
+
+// EXPORT
+function renderExport() {
+  const byProject = {};
+  tasks.forEach(t => {
+    const p = t.project || '(Без проекта)';
+    if (!byProject[p]) byProject[p] = {tasks: 0, mins: 0};
+    byProject[p].tasks++;
+    byProject[p].mins += totalMinutes(t);
+  });
+  const totalMins = tasks.reduce((s, t) => s + totalMinutes(t), 0);
+  let html = `<div style="display:flex;flex-direction:column;gap:7px;">`;
+  for (const [p, d] of Object.entries(byProject)) {
+    const pct = totalMins ? Math.round(d.mins / totalMins * 100) : 0;
+    html += `<div style="padding:8px 10px;background:var(--surface2);border-radius:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;">
+        <span>${esc(p)} <span style="color:var(--muted)">${d.tasks} задач</span></span>
+        <span style="font-family:'Space Mono',monospace;color:var(--accent)">${formatTime(d.mins)}</span>
+      </div>
+      <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:2px;"></div>
+      </div>
+    </div>`;
+  }
+  if (!Object.keys(byProject).length) html += `<div style="color:var(--muted);font-size:11px;text-align:center;padding:12px 0">Нет данных</div>`;
+  html += `<div style="display:flex;justify-content:space-between;padding:8px 0 2px;border-top:1px solid var(--border);font-size:12px;font-weight:700;margin-top:2px;">
+    <span>ИТОГО</span><span style="font-family:'Space Mono',monospace;color:var(--accent)">${formatTime(totalMins)}</span>
+  </div></div>`;
+  document.getElementById('time-summary').innerHTML = html;
+}
+
+function buildCSV() {
+  const sep = document.getElementById('exp-sep').value;
+  const statusF = document.getElementById('exp-status').value;
+  const incDesc = document.getElementById('exp-desc').checked;
+  const incTags = document.getElementById('exp-tags').checked;
+  const incPomo = document.getElementById('exp-pomo').checked;
+
+  const filtered = tasks.filter(t => !statusF || t.status === statusF);
+  const q = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+
+  let cols = ['Emoji', 'Название', 'Статус', 'Проект'];
+  if (incDesc) cols.push('Описание');
+  if (incTags) cols.push('Теги');
+  if (incPomo) cols.push('Помидоров (план)', 'Помидоров (факт)');
+  cols.push('Время (мин)', 'Время');
+
+  const rows = [cols.join(sep)];
+  filtered.forEach(t => {
+    const row = [q(t.emoji || '📌'), q(t.name), q(t.status), q(t.project || '')];
+    if (incDesc) row.push(q(t.description || ''));
+    if (incTags) row.push(q((t.tags || []).join(', ')));
+    if (incPomo) { row.push(t.pomosPlanned || 0); row.push(t.pomosDone || 0); }
+    const mins = totalMinutes(t);
+    row.push(mins);
+    row.push(q(formatTime(mins)));
+    rows.push(row.join(sep));
+  });
+  return rows.join('\n');
+}
+
+function previewCSV() {
+  document.getElementById('csv-preview').textContent = buildCSV();
+}
+
+function downloadCSV() {
+  const csv = buildCSV();
+  const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'taskflow_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  notify('📥 CSV скачан!');
+}
+
+// TASK CRUD
+// INCREMENT POMO ON CARD CLICK
+function incrementPomo(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  t.pomosDone = (t.pomosDone || 0) + 1;
+  const time = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+  pomLog.push({task: t.name, time});
+  todayPomos++;
+  save(); renderAll();
+  notify('🍅 +1 помидор: ' + t.name.substring(0, 20));
+}
+
+function quickAdd(e, status) {
+  if (e.key === 'Enter' && e.target.value.trim()) {
+    tasks.push({id: Date.now(), name: e.target.value.trim(), emoji: '📌', status, project: '', tags: [], description: '', pomosPlanned: 1, pomosDone: 0, minutesSpent: 0});
+    save(); renderAll(); e.target.value = '';
+    notify('✅ Добавлено');
+  }
+}
+
+function deleteTask(id, e) {
+  e && e.stopPropagation();
+  e && e.preventDefault();
+  tasks = tasks.filter(t => t.id !== id);
+  save(); renderAll();
+  if (document.getElementById('view-list').classList.contains('active')) renderList();
+  notify('🗑 Удалено');
+}
+
+// MODAL
+let editingId = null;
+let currentTags = [];
+let currentEmoji = '📌';
+
+const EMOJI_LIST = ['📌','🔥','⚡','✅','🎯','🚀','💡','🐛','🔧','📝','📊','🎨','🎵','🎮','🏆','💰','📅','🔍','💬','🔗','⭐','❤️','🟢','🟡','🔴','🔵','⚪','🟣','🟠','🟤','🧩','🛠','📱','💻','🖥','📦','🧪','🔬','📷','🎬','📚','🗂','🗑','✉️','📣','🔔','🌟','💎','🎁'];
+
+function buildEmojiGrid() {
+  document.getElementById('emoji-grid').innerHTML = EMOJI_LIST.map(em =>
+    `<div class="emoji-opt" onclick="selectEmoji('${em}')">${em}</div>`).join('');
+}
+
+function toggleEmojiPicker() {
+  document.getElementById('emoji-grid').classList.toggle('open');
+}
+
+function selectEmoji(em) {
+  currentEmoji = em;
+  document.getElementById('emoji-preview').textContent = em;
+  document.getElementById('emoji-grid').classList.remove('open');
+}
+
+function openAddModal() {
+  editingId = null; currentTags = []; currentEmoji = '📌';
+  document.getElementById('modal-title-text').textContent = 'Новая задача';
+  document.getElementById('modal-save-btn').textContent = 'Добавить';
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-desc').value = '';
+  document.getElementById('m-status').value = '📥 To Do';
+  document.getElementById('m-project').value = '';
+  document.getElementById('m-pomo').value = '';
+  document.getElementById('m-pomo-done').value = '';
+  document.getElementById('emoji-preview').textContent = '📌';
+  renderTagChips();
+  document.getElementById('task-modal').classList.add('open');
+  setTimeout(() => document.getElementById('m-name').focus(), 80);
+}
+
+function openEditModal(id, e) {
+  e && e.stopPropagation();
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  editingId = id; currentTags = [...(t.tags || [])]; currentEmoji = t.emoji || '📌';
+  document.getElementById('modal-title-text').textContent = 'Редактировать задачу';
+  document.getElementById('modal-save-btn').textContent = 'Сохранить';
+  document.getElementById('m-name').value = t.name;
+  document.getElementById('m-desc').value = t.description || '';
+  document.getElementById('m-status').value = t.status;
+  document.getElementById('m-project').value = t.project || '';
+  document.getElementById('m-pomo').value = t.pomosPlanned || '';
+  document.getElementById('m-pomo-done').value = t.pomosDone || '';
+  document.getElementById('emoji-preview').textContent = currentEmoji;
+  renderTagChips();
+  document.getElementById('task-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('task-modal').classList.remove('open');
+  document.getElementById('emoji-grid').classList.remove('open');
+  editingId = null;
+}
+
+function saveModal() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { notify('✏️ Введите название!'); return; }
+  const data = {
+    name, emoji: currentEmoji,
+    description: document.getElementById('m-desc').value.trim(),
+    status: document.getElementById('m-status').value,
+    project: document.getElementById('m-project').value.trim(),
+    tags: [...currentTags],
+    pomosPlanned: parseInt(document.getElementById('m-pomo').value) || 1,
+    pomosDone: parseInt(document.getElementById('m-pomo-done').value) || 0,
+  };
+  if (editingId) {
+    Object.assign(tasks.find(t => t.id === editingId), data);
+    notify('💾 Сохранено');
+  } else {
+    tasks.push({id: Date.now(), ...data});
+    notify('✅ Задача добавлена');
+  }
+  save(); renderAll();
+  if (document.getElementById('view-list').classList.contains('active')) renderList();
+  closeModal();
+}
+
+document.getElementById('task-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('task-modal')) closeModal();
+});
+
+// Close emoji grid on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.emoji-picker-wrap')) {
+    document.getElementById('emoji-grid').classList.remove('open');
+  }
+});
+
+// TAGS
+function handleTagInput(e) {
+  const input = document.getElementById('tag-input');
+  if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+    e.preventDefault();
+    const tag = input.value.trim().replace(/,/g, '').toLowerCase();
+    if (tag && !currentTags.includes(tag)) { currentTags.push(tag); renderTagChips(); }
+    input.value = '';
+  } else if (e.key === 'Backspace' && !input.value && currentTags.length) {
+    currentTags.pop(); renderTagChips();
+  }
+}
+
+function renderTagChips() {
+  const wrap = document.getElementById('tags-wrap');
+  wrap.querySelectorAll('.tag-chip').forEach(c => c.remove());
+  const input = document.getElementById('tag-input');
+  currentTags.forEach((tg, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'tag-chip';
+    chip.innerHTML = `${tg}<button type="button" onclick="removeTag(${i})">×</button>`;
+    wrap.insertBefore(chip, input);
+  });
+}
+
+function removeTag(i) { currentTags.splice(i, 1); renderTagChips(); }
+
+// DRAG & DROP
+let dragId = null;
+function dragstart(e) { dragId = Number(e.currentTarget.dataset.id); e.dataTransfer.effectAllowed = 'move'; }
+function dragover(e) { e.preventDefault(); }
+function drop(e, status) {
+  e.preventDefault();
+  if (dragId === null) return;
+  const t = tasks.find(t => Number(t.id) === Number(dragId));
+  if (t && t.status !== status) { t.status = status; save(); renderAll(); notify('→ ' + status); }
+  dragId = null;
+}
+
+// POMODORO TIMER
+let timerInterval = null, timerRunning = false;
+let timerSeconds = 25*60, timerTotal = 25*60, sessionCount = 1;
+let currentPhase = 'focus'; // 'focus' | 'break'
+let focusDuration = 25;     // minutes
+let breakDuration = 5;      // minutes
+let autoBreak = false;
+const CIRC = 2 * Math.PI * 52; // r=52 → 326.73
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds/60), s = timerSeconds%60;
+  document.getElementById('ring-time').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// syncDurDisplay removed
+
+function switchPhase(phase) {
+  currentPhase = phase;
+  document.getElementById('phase-focus').classList.toggle('active', phase === 'focus');
+  document.getElementById('phase-break').classList.toggle('active', phase === 'break');
+  const timeEl = document.getElementById('ring-time');
+  timeEl.className = phase === 'focus' ? 'timer-phase-focus' : 'timer-phase-break';
+  const mins = phase === 'focus' ? focusDuration : breakDuration;
+  document.getElementById('ring-sub').textContent = phase === 'focus' ? 'focus · ' + focusDuration + ' min' : 'break · ' + breakDuration + ' min';
+  clearInterval(timerInterval); timerRunning = false;
+  document.getElementById('start-btn').textContent = '▶ START';
+  timerTotal = mins * 60;
+  timerSeconds = timerTotal;
+  updateTimerDisplay();
+}
+
+function adjustDuration(delta) {
+  if (currentPhase === 'focus') {
+    focusDuration = Math.max(5, Math.min(120, focusDuration + delta));
+  } else {
+    breakDuration = Math.max(1, Math.min(60, breakDuration + delta));
+  }
+  if (!timerRunning) {
+    timerTotal = (currentPhase === 'focus' ? focusDuration : breakDuration) * 60;
+    timerSeconds = timerTotal;
+    updateTimerDisplay();
+  }
+  document.getElementById('ring-sub').textContent = currentPhase === 'focus'
+    ? 'focus · ' + focusDuration + ' min'
+    : 'break · ' + breakDuration + ' min';
+}
+
+function adjustRunning(deltaMins) {
+  const delta = deltaMins * 60;
+  timerSeconds = Math.max(0, timerSeconds + delta);
+  timerTotal = Math.max(timerTotal, timerSeconds);
+  updateTimerDisplay();
+}
+
+function toggleAutoBreak() {
+  autoBreak = !autoBreak;
+  const bg = document.getElementById('auto-break-toggle');
+  const thumb = document.getElementById('auto-break-thumb');
+  if (autoBreak) {
+    bg.style.background = 'var(--accent)';
+    thumb.style.left = '18px';
+    thumb.style.background = '#0d0d0f';
+  } else {
+    bg.style.background = 'var(--border)';
+    thumb.style.left = '2px';
+    thumb.style.background = 'var(--muted)';
+  }
+}
+
+function onFocusComplete() {
+  clearInterval(timerInterval); timerRunning = false;
+  sessionCount++;
+  document.getElementById('session-count').textContent = sessionCount;
+  document.getElementById('start-btn').textContent = '▶ START';
+  todayPomos++;
+  pomLog.push({task: 'Pomodoro #' + (sessionCount-1), time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});
+  save(); renderAll();
+  showTimerAlert('focus');
+  notify('🍅 Помидор завершён!');
+  if (Notification.permission === 'granted') new Notification('🍅 Pomodoro!', {body: 'Время отдохнуть!'});
+  if (autoBreak) { setTimeout(() => switchPhase('break'), 800); setTimeout(() => toggleTimer(), 1200); }
+}
+
+function onBreakComplete() {
+  clearInterval(timerInterval); timerRunning = false;
+  document.getElementById('start-btn').textContent = '▶ START';
+  showTimerAlert('break');
+  notify('☕ Перерыв окончен!');
+  if (Notification.permission === 'granted') new Notification('☕ Перерыв окончен!', {body: 'Пора работать!'});
+  if (autoBreak) { setTimeout(() => switchPhase('focus'), 800); setTimeout(() => toggleTimer(), 1200); }
+}
+
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval); timerRunning = false;
+    document.getElementById('start-btn').textContent = '▶ RESUME';
+  } else {
+    if (timerSeconds <= 0) { timerSeconds = timerTotal; }
+    timerRunning = true;
+    document.getElementById('start-btn').textContent = '⏸ PAUSE';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        if (currentPhase === 'focus') onFocusComplete();
+        else onBreakComplete();
+      }
+    }, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval); timerRunning = false;
+  timerTotal = (currentPhase === 'focus' ? focusDuration : breakDuration) * 60;
+  timerSeconds = timerTotal;
+  document.getElementById('start-btn').textContent = '▶ START';
+  updateTimerDisplay();
+}
+
+function setMode(minutes, label, btn) {
+  // legacy stub – unused now
+}
+
+function showTimerAlert(phase) {
+  const isFocus = phase === 'focus';
+  const color = isFocus ? 'var(--accent)' : 'var(--accent3)';
+  const icon = isFocus ? '🍅' : '☕';
+  const title = isFocus ? 'Помидор завершён!' : 'Перерыв окончен!';
+  const sub = isFocus ? 'Сделайте перерыв' : 'Пора работать!';
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `<div style="background:var(--surface);border:2px solid ${color};border-radius:20px;padding:40px 50px;text-align:center;max-width:360px;">
+    <div style="font-size:60px;margin-bottom:14px;">${icon}</div>
+    <div style="font-size:22px;font-weight:800;color:${color};margin-bottom:8px;">${title}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:26px;">${sub}</div>
+    <button class="btn primary" onclick="this.closest('div[style*=fixed]').remove()" style="padding:10px 28px;font-size:13px;">Окей!</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 12000);
+}
+
+// IMPORT
+function openImportModal() {
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-preview').textContent = 'Введите задачи выше...';
+  document.getElementById('import-modal').classList.add('open');
+  setTimeout(() => document.getElementById('import-text').focus(), 80);
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.remove('open');
+}
+
+document.getElementById('import-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('import-modal')) closeImportModal();
+});
+
+document.getElementById('import-text').addEventListener('input', () => {
+  const lines = document.getElementById('import-text').value.split('\n').map(l => l.trim()).filter(Boolean);
+  document.getElementById('import-preview').innerHTML = lines.length
+    ? lines.map(l => `<span style="display:inline-block;background:var(--surface3);border-radius:4px;padding:2px 7px;margin:2px;font-size:10px;">📌 ${l}</span>`).join('')
+    : '<span style="color:var(--muted)">Введите задачи выше...</span>';
+});
+
+function doImport() {
+  const lines = document.getElementById('import-text').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { notify('✏️ Нет задач для импорта'); return; }
+  const status = document.getElementById('import-status').value;
+  const project = document.getElementById('import-project').value.trim();
+  lines.forEach(raw => {
+    const parts = raw.split(',');
+    const name = parts[0].trim();
+    const pomosPlanned = parts.length > 1 && parseInt(parts[parts.length-1].trim()) > 0
+      ? parseInt(parts[parts.length-1].trim()) : 1;
+    tasks.push({id: Date.now() + Math.floor(Math.random()*10000), name, emoji: '📌', status, project, tags: [], description: '', pomosPlanned, pomosDone: 0});
+  });
+  save(); renderAll();
+  if (document.getElementById('view-list').classList.contains('active')) renderList();
+  closeImportModal();
+  notify('✅ Импортировано: ' + lines.length + ' задач');
+}
+
+if (Notification && Notification.permission === 'default') Notification.requestPermission();
+
+// INIT
+buildEmojiGrid();
+switchPhase('focus');
+
+if (!tasks.length) {
+  tasks = [
+    {id:1,name:'Прочитать документацию API v3',emoji:'📝',status:'📥 To Do',project:'💼 Work',tags:['docs','backend'],description:'Изучить новый API, особенно раздел авторизации и rate limits.',pomosPlanned:2,pomosDone:0,minutesSpent:0},
+    {id:2,name:'Пофиксить баг с JWT',emoji:'🐛',status:'⚡ Doing',project:'💼 Work',tags:['bug','urgent'],description:'После обновления библиотеки JWT сессии не сохраняются.',pomosPlanned:3,pomosDone:1,minutesSpent:25},
+    {id:3,name:'Новый уровень в игре',emoji:'🎮',status:'📥 To Do',project:'🎮 Gaming',tags:['fun'],description:'',pomosPlanned:1,pomosDone:0,minutesSpent:0},
+    {id:4,name:'Записать гитарную партию',emoji:'🎵',status:'🔥 Blocked',project:'🎵 Music',tags:['creative','studio'],description:'Ждём студию. Аккорды готовы, нужна запись.',pomosPlanned:4,pomosDone:0,minutesSpent:0},
+    {id:5,name:'Написать README.md',emoji:'✅',status:'✅ Done',project:'💼 Work',tags:['docs'],description:'',pomosPlanned:1,pomosDone:1,minutesSpent:25},
+  ];
+  save();
+}
+renderAll();
+</script>
+</body>
+</html>
