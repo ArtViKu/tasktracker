@@ -2,8 +2,15 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TaskFlow</title>
+<meta name="description" content="Personal task tracker with Kanban, timer and time tracking">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TaskFlow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0d0d0f;--surface:#141418;--surface2:#1c1c22;--surface3:#232330;--border:#2a2a38;--accent:#e8ff47;--accent2:#ff6b47;--accent3:#47b8ff;--green:#47ff8a;--text:#e8e8f0;--muted:#666680;}
@@ -14,7 +21,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border);}
 .logo{font-size:20px;font-weight:800;letter-spacing:-.5px;}.logo span{color:var(--accent);}
 #date-display{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);}
-.tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:18px;width:fit-content;}
+.tabs{display:flex;gap:3px;background:transparent;border:none;border-radius:10px;padding:0;width:fit-content;}
 .tab{background:none;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;}
 .tab.active{background:var(--surface2);color:var(--text);}
 .tab:hover:not(.active){color:var(--text);}
@@ -46,8 +53,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .task-project{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;}
 .proj-0{background:#1a2a4a;color:var(--accent3);}.proj-1{background:#2a1a3a;color:#c847ff;}.proj-2{background:#1a3a2a;color:var(--green);}.proj-3{background:#3a2a1a;color:#ffb347;}.proj-custom{background:var(--surface3);color:var(--muted);}
 .task-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
-.pomo-bar{display:flex;gap:2px;margin-top:4px;flex-wrap:wrap;}
-.pomo-dot{width:6px;height:6px;border-radius:50%;background:var(--border);}.pomo-dot.done{background:var(--accent);}
+
 .card-actions{position:absolute;top:5px;right:5px;display:flex;gap:2px;opacity:0;transition:opacity .15s;}
 .task-card:hover .card-actions{opacity:1;}
 .card-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:3px;border-radius:3px;transition:all .15s;line-height:1;}
@@ -140,13 +146,23 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
 <header>
   <div class="logo">TASK<span>FLOW</span></div>
-  <div id="date-display"></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="btn sm green" onclick="saveJSON()" title="Сохранить все данные в JSON-файл">💾 Сохранить</button>
+    <label class="btn sm" style="cursor:pointer;" title="Загрузить данные из JSON-файла">📂 Загрузить<input type="file" id="json-file-input-header" accept=".json" style="display:none" onchange="loadJSON(event)"></label>
+    <div id="date-display"></div>
+  </div>
 </header>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('kanban',this)">🗂 Kanban</button>
-  <button class="tab" onclick="switchTab('list',this)">📋 Список</button>
-  <button class="tab" onclick="switchTab('export',this)">📊 Экспорт</button>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+  <div class="tabs" style="margin-bottom:0;">
+    <button class="tab active" onclick="switchTab('kanban',this)">🗂 Kanban</button>
+    <button class="tab" onclick="switchTab('list',this)">📋 Список</button>
+    <button class="tab" onclick="switchTab('export',this)">📊 Экспорт</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px 10px;">
+    <span style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;">📁</span>
+    <input id="project-name" value="Мой проект" style="background:none;border:none;outline:none;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;width:180px;" placeholder="Название проекта..." oninput="projectName=this.value">
+  </div>
 </div>
 
 <div class="stats">
@@ -165,8 +181,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     <div>
       <div class="section-header">
         <div class="section-title">// Kanban Board</div>
-        <button class="btn sm" onclick="openAddModal()">+ Новая задача</button>
-        <button class="btn sm" onclick="openImportModal()">📋 Импорт</button>
       </div>
       <div class="kanban-board">
         <div class="kanban-col col-todo" id="col-todo" ondrop="drop(event,'📥 To Do')" ondragover="dragover(event)">
@@ -199,8 +213,12 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
         <!-- Big clock, no ring -->
         <div style="text-align:center;margin-bottom:18px;">
-          <div id="ring-time" class="timer-phase-focus" style="font-family:'Space Mono',monospace;font-size:52px;font-weight:700;line-height:1;letter-spacing:-2px;">25:00</div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:6px;" id="ring-sub">focus · 25 min</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+            <button class="adj-btn big" onclick="adjustRunning(-5)" title="-5 минут">−5</button>
+            <div id="ring-time" class="timer-phase-focus" style="font-family:'Space Mono',monospace;font-size:48px;font-weight:700;line-height:1;letter-spacing:-2px;">25:00</div>
+            <button class="adj-btn big" onclick="adjustRunning(5)" title="+5 минут">+5</button>
+          </div>
+
         </div>
 
         <!-- Controls -->
@@ -250,7 +268,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
     <table class="task-list-table">
       <thead><tr>
-        <th>Задача</th><th>Статус</th><th>Теги</th><th>🍅</th><th>⏱ Время</th><th></th>
+        <th>Задача</th><th>Статус</th><th>Теги</th><th>📋 План</th><th>⏱ Факт</th><th></th>
       </tr></thead>
       <tbody id="list-body"></tbody>
     </table>
@@ -279,7 +297,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
         <div style="display:flex;flex-direction:column;gap:7px;font-size:12px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-desc" checked style="accent-color:var(--accent)"> Описание</label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-tags" checked style="accent-color:var(--accent)"> Теги</label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-pomo" checked style="accent-color:var(--accent)"> Помидоры</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="exp-pomo" checked style="accent-color:var(--accent)"> Время план/факт</label>
         </div>
         <button class="btn primary full" onclick="previewCSV()">👁 Предпросмотр</button>
       </div>
@@ -304,8 +322,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
     <div class="modal-title">📋 Импорт задач</div>
     <div class="modal-section">
       <div class="form-label">Вставьте список задач (каждая с новой строки)</div>
-      <textarea class="form-textarea" id="import-text" style="min-height:140px" placeholder="Написать тесты, 2&#10;Обновить документацию, 3&#10;Ревью PR от Антона&#10;Деплой на прод, 4"></textarea>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px;">Формат: <code style="background:var(--surface3);padding:1px 4px;border-radius:3px;">Название задачи, 3</code> — число после запятой = помидоров</div>
+      <textarea class="form-textarea" id="import-text" style="min-height:140px" placeholder="Написать тесты, 30&#10;Обновить документацию, 60&#10;Ревью PR от Антона&#10;Деплой на прод, 90"></textarea>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px;">Формат: <code style="background:var(--surface3);padding:1px 4px;border-radius:3px;">Название задачи, 30</code> — число после запятой = минут (по умолч. 25)</div>
     </div>
     <div class="modal-section">
       <div class="form-row">
@@ -373,11 +391,13 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
     <div class="modal-section">
       <div class="form-row">
-        <div style="flex:1;"><div class="form-label">🍅 Помидоров (план)</div>
-          <input class="form-input" type="number" id="m-pomo" min="0" max="20" placeholder="4">
+        <div style="flex:1;">
+          <div class="form-label">⏱ Время план (мин)</div>
+          <input class="form-input" type="number" id="m-pomo" min="0" placeholder="25">
         </div>
-        <div style="flex:1;"><div class="form-label">🍅 Помидоров (факт)</div>
-          <input class="form-input" type="number" id="m-pomo-done" min="0" max="20" placeholder="0">
+        <div style="flex:1;">
+          <div class="form-label">⏱ Время факт (мин)</div>
+          <input class="form-input" type="number" id="m-pomo-done" min="0" placeholder="0">
         </div>
       </div>
     </div>
@@ -396,11 +416,13 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 let tasks = JSON.parse(localStorage.getItem('tf3_tasks') || '[]');
 let pomLog = JSON.parse(localStorage.getItem('tf3_pom_log') || '[]');
 let todayPomos = parseInt(localStorage.getItem('tf3_today_pomos') || '0');
+let projectName = localStorage.getItem('tf3_project_name') || 'Мой проект';
 
 function save() {
   localStorage.setItem('tf3_tasks', JSON.stringify(tasks));
   localStorage.setItem('tf3_pom_log', JSON.stringify(pomLog));
   localStorage.setItem('tf3_today_pomos', String(todayPomos));
+  localStorage.setItem('tf3_project_name', projectName);
 }
 
 function notify(msg) {
@@ -416,9 +438,20 @@ function formatTime(mins) {
   const h = Math.floor(mins/60), m = mins%60;
   return h + 'ч' + (m ? ' ' + m + 'м' : '');
 }
+function formatTimeShort(mins) {
+  if (!mins) return null;
+  if (mins < 60) return mins + 'm';
+  const h = Math.floor(mins/60), m = mins%60;
+  return h + 'h' + (m ? (m < 10 ? '0' : '') + m : '');
+}
 
 function totalMinutes(t) {
-  return (t.pomosDone || 0) * 25;
+  // fact time: timeMinutes override, else pomosDone as minutes directly
+  if (t.timeMinutes != null && t.timeMinutes > 0) return t.timeMinutes;
+  return t.pomosDone || 0;
+}
+function plannedMinutes(t) {
+  return t.pomosPlanned || 0;
 }
 
 document.getElementById('date-display').textContent =
@@ -442,7 +475,7 @@ function updateStats() {
   document.getElementById('stat-blocked').textContent = tasks.filter(t => t.status === '🔥 Blocked').length;
   document.getElementById('stat-total').textContent = tasks.length;
   const totalMins = tasks.reduce((s, t) => s + totalMinutes(t), 0);
-  const plannedMins = tasks.reduce((s, t) => s + (t.pomosPlanned || 1) * 25, 0);
+  const plannedMins = tasks.reduce((s, t) => s + plannedMinutes(t), 0);
   document.getElementById('stat-time').textContent = formatTime(totalMins);
   document.getElementById('stat-planned').textContent = formatTime(plannedMins);
 }
@@ -478,12 +511,12 @@ function renderKanban() {
       card.dataset.id = t.id;
       card.addEventListener('dragstart', dragstart);
 
-      const doneP = t.pomosDone || 0;
-      const planP = t.pomosPlanned || 1;
-      const dots = Array.from({length: Math.min(planP, 12)}, (_, i) =>
-        `<div class="pomo-dot ${i < doneP ? 'done' : ''}"></div>`).join('');
+      const factMins = totalMinutes(t);
+      const planMins = plannedMinutes(t);
       const tags = (t.tags || []).slice(0, 3).map(tg => `<span class="tag">${tg}</span>`).join('');
-      const mins = totalMinutes(t);
+      const timeLabel = (planMins || factMins)
+        ? `<span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">${formatTimeShort(planMins)||'—'}</span><span style="color:var(--muted);font-size:9px;"> / </span><span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--accent)">${formatTimeShort(factMins)||'0m'}</span>`
+        : '';
 
       card.innerHTML = `
         <div class="card-actions">
@@ -498,10 +531,8 @@ function renderKanban() {
         ${tags ? `<div class="card-tags">${tags}</div>` : ''}
         <div class="task-meta">
           <span class="task-project ${projectClass(t.project)}">${t.project || '—'}</span>
-          <span class="task-time">${mins ? formatTime(mins) : ''}</span>
-          <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">🍅${doneP}/${planP}</span>
+          <span>⏱ ${timeLabel}</span>
         </div>
-        <div class="pomo-bar">${dots}</div>
       `;
       card.addEventListener('click', e => {
         if (e.target.closest('.card-actions')) return;
@@ -559,7 +590,8 @@ function renderList() {
 
   body.innerHTML = filtered.map(t => {
     const tags = (t.tags || []).map(tg => `<span class="tag">${tg}</span>`).join('');
-    const mins = totalMinutes(t);
+    const factMins = totalMinutes(t);
+    const planMins = plannedMinutes(t);
     return `<tr>
       <td>
         <div class="tl-name">${t.emoji || '📌'} ${esc(t.name)}</div>
@@ -567,8 +599,8 @@ function renderList() {
       </td>
       <td><span class="tl-status ${statusCls[t.status] || ''}">${t.status}</span></td>
       <td><div style="display:flex;flex-wrap:wrap;gap:3px">${tags || '<span style="color:var(--muted)">—</span>'}</div></td>
-      <td class="tl-pomo">${t.pomosDone || 0}/${t.pomosPlanned || 1}</td>
-      <td class="tl-time" style="color:${mins ? 'var(--accent)' : 'var(--muted)'}">${mins ? formatTime(mins) : '—'}</td>
+      <td class="tl-time" style="color:var(--muted)">${planMins ? formatTime(planMins) : '—'}</td>
+      <td class="tl-time" style="color:${factMins ? 'var(--accent)' : 'var(--muted)'}">${factMins ? formatTime(factMins) : '—'}</td>
       <td><div class="tl-actions">
         <button class="btn sm" onclick="openEditModal(${t.id},event)">✏️</button>
         <button class="btn sm danger" onclick="deleteTask(${t.id},event)">✕</button>
@@ -635,18 +667,17 @@ function buildCSV() {
   let cols = ['Emoji', 'Название', 'Статус', 'Проект'];
   if (incDesc) cols.push('Описание');
   if (incTags) cols.push('Теги');
-  if (incPomo) cols.push('Помидоров (план)', 'Помидоров (факт)');
-  cols.push('Время (мин)', 'Время');
+  if (incPomo) cols.push('Время план (мин)', 'Время план', 'Время факт (мин)', 'Время факт');
 
   const rows = [cols.join(sep)];
   filtered.forEach(t => {
     const row = [q(t.emoji || '📌'), q(t.name), q(t.status), q(t.project || '')];
     if (incDesc) row.push(q(t.description || ''));
     if (incTags) row.push(q((t.tags || []).join(', ')));
-    if (incPomo) { row.push(t.pomosPlanned || 0); row.push(t.pomosDone || 0); }
-    const mins = totalMinutes(t);
-    row.push(mins);
-    row.push(q(formatTime(mins)));
+    if (incPomo) {
+      const pm = plannedMinutes(t), fm = totalMinutes(t);
+      row.push(pm, q(formatTime(pm)), fm, q(formatTime(fm)));
+    }
     rows.push(row.join(sep));
   });
   return rows.join('\n');
@@ -669,14 +700,18 @@ function downloadCSV() {
 // TASK CRUD
 // INCREMENT POMO ON CARD CLICK
 function incrementPomo(id) {
+  if (currentPhase !== 'focus') {
+    notify('☕ Перерыв — время не засчитывается');
+    return;
+  }
   const t = tasks.find(t => t.id === id);
   if (!t) return;
-  t.pomosDone = (t.pomosDone || 0) + 1;
+  const addMins = Math.round(timerTotal / 60);
+  t.pomosDone = (t.pomosDone || 0) + addMins;
   const time = new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
-  pomLog.push({task: t.name, time});
-  todayPomos++;
+  pomLog.push({task: t.name, time, mins: addMins});
   save(); renderAll();
-  notify('🍅 +1 помидор: ' + t.name.substring(0, 20));
+  notify('⏱ +' + addMins + 'м → ' + t.name.substring(0, 20));
 }
 
 function quickAdd(e, status) {
@@ -767,8 +802,9 @@ function saveModal() {
     status: document.getElementById('m-status').value,
     project: document.getElementById('m-project').value.trim(),
     tags: [...currentTags],
-    pomosPlanned: parseInt(document.getElementById('m-pomo').value) || 1,
+    pomosPlanned: parseInt(document.getElementById('m-pomo').value) || 0,
     pomosDone: parseInt(document.getElementById('m-pomo-done').value) || 0,
+    timeMinutes: null,
   };
   if (editingId) {
     Object.assign(tasks.find(t => t.id === editingId), data);
@@ -834,12 +870,23 @@ function drop(e, status) {
 
 // POMODORO TIMER
 let timerInterval = null, timerRunning = false;
-let timerSeconds = 25*60, timerTotal = 25*60, sessionCount = 1;
+let sessionCount = 1;
 let currentPhase = 'focus'; // 'focus' | 'break'
 let focusDuration = 25;     // minutes
 let breakDuration = 5;      // minutes
+// separate state per phase
+let focusTotal = 25*60, focusSeconds = 25*60;
+let breakTotal = 5*60,  breakSeconds = 5*60;
 let autoBreak = false;
-const CIRC = 2 * Math.PI * 52; // r=52 → 326.73
+// getters for current phase
+function getTotal()   { return currentPhase === 'focus' ? focusTotal   : breakTotal; }
+function getSeconds() { return currentPhase === 'focus' ? focusSeconds : breakSeconds; }
+function setSeconds(v){ if (currentPhase === 'focus') focusSeconds = v; else breakSeconds = v; }
+function setTotal(v)  { if (currentPhase === 'focus') focusTotal   = v; else breakTotal   = v; }
+// legacy aliases so existing code that uses timerTotal/timerSeconds still works via getters
+Object.defineProperty(window, 'timerTotal',   { get: getTotal,   set: setTotal });
+Object.defineProperty(window, 'timerSeconds', { get: getSeconds, set: setSeconds });
+const CIRC = 2 * Math.PI * 52;
 
 function updateTimerDisplay() {
   const m = Math.floor(timerSeconds/60), s = timerSeconds%60;
@@ -849,40 +896,37 @@ function updateTimerDisplay() {
 // syncDurDisplay removed
 
 function switchPhase(phase) {
+  clearInterval(timerInterval); timerRunning = false;
   currentPhase = phase;
   document.getElementById('phase-focus').classList.toggle('active', phase === 'focus');
   document.getElementById('phase-break').classList.toggle('active', phase === 'break');
   const timeEl = document.getElementById('ring-time');
   timeEl.className = phase === 'focus' ? 'timer-phase-focus' : 'timer-phase-break';
-  const mins = phase === 'focus' ? focusDuration : breakDuration;
-  document.getElementById('ring-sub').textContent = phase === 'focus' ? 'focus · ' + focusDuration + ' min' : 'break · ' + breakDuration + ' min';
-  clearInterval(timerInterval); timerRunning = false;
   document.getElementById('start-btn').textContent = '▶ START';
-  timerTotal = mins * 60;
-  timerSeconds = timerTotal;
+  // each phase restores its own saved time
   updateTimerDisplay();
 }
 
 function adjustDuration(delta) {
   if (currentPhase === 'focus') {
     focusDuration = Math.max(5, Math.min(120, focusDuration + delta));
+    if (!timerRunning) { focusTotal = focusDuration*60; focusSeconds = focusTotal; }
   } else {
     breakDuration = Math.max(1, Math.min(60, breakDuration + delta));
+    if (!timerRunning) { breakTotal = breakDuration*60; breakSeconds = breakTotal; }
   }
-  if (!timerRunning) {
-    timerTotal = (currentPhase === 'focus' ? focusDuration : breakDuration) * 60;
-    timerSeconds = timerTotal;
-    updateTimerDisplay();
-  }
-  document.getElementById('ring-sub').textContent = currentPhase === 'focus'
-    ? 'focus · ' + focusDuration + ' min'
-    : 'break · ' + breakDuration + ' min';
+  updateTimerDisplay();
 }
 
 function adjustRunning(deltaMins) {
   const delta = deltaMins * 60;
-  timerSeconds = Math.max(0, timerSeconds + delta);
-  timerTotal = Math.max(timerTotal, timerSeconds);
+  if (currentPhase === 'focus') {
+    focusSeconds = Math.max(0, focusSeconds + delta);
+    if (focusSeconds > focusTotal) focusTotal = focusSeconds;
+  } else {
+    breakSeconds = Math.max(0, breakSeconds + delta);
+    if (breakSeconds > breakTotal) breakTotal = breakSeconds;
+  }
   updateTimerDisplay();
 }
 
@@ -903,20 +947,21 @@ function toggleAutoBreak() {
 
 function onFocusComplete() {
   clearInterval(timerInterval); timerRunning = false;
+  focusSeconds = focusTotal; // reset focus for next round
   sessionCount++;
   document.getElementById('session-count').textContent = sessionCount;
   document.getElementById('start-btn').textContent = '▶ START';
-  todayPomos++;
-  pomLog.push({task: 'Pomodoro #' + (sessionCount-1), time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});
+  pomLog.push({task: 'Focus #' + (sessionCount-1), time: new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})});
   save(); renderAll();
   showTimerAlert('focus');
-  notify('🍅 Помидор завершён!');
-  if (Notification.permission === 'granted') new Notification('🍅 Pomodoro!', {body: 'Время отдохнуть!'});
+  notify('✅ Фокус завершён!');
+  if (Notification.permission === 'granted') new Notification('✅ Фокус завершён!', {body: 'Время отдохнуть!'});
   if (autoBreak) { setTimeout(() => switchPhase('break'), 800); setTimeout(() => toggleTimer(), 1200); }
 }
 
 function onBreakComplete() {
   clearInterval(timerInterval); timerRunning = false;
+  breakSeconds = breakTotal; // reset break for next round
   document.getElementById('start-btn').textContent = '▶ START';
   showTimerAlert('break');
   notify('☕ Перерыв окончен!');
@@ -945,8 +990,8 @@ function toggleTimer() {
 
 function resetTimer() {
   clearInterval(timerInterval); timerRunning = false;
-  timerTotal = (currentPhase === 'focus' ? focusDuration : breakDuration) * 60;
-  timerSeconds = timerTotal;
+  if (currentPhase === 'focus') { focusTotal = focusDuration*60; focusSeconds = focusTotal; }
+  else                          { breakTotal = breakDuration*60; breakSeconds = breakTotal; }
   document.getElementById('start-btn').textContent = '▶ START';
   updateTimerDisplay();
 }
@@ -1004,9 +1049,9 @@ function doImport() {
   lines.forEach(raw => {
     const parts = raw.split(',');
     const name = parts[0].trim();
-    const pomosPlanned = parts.length > 1 && parseInt(parts[parts.length-1].trim()) > 0
-      ? parseInt(parts[parts.length-1].trim()) : 1;
-    tasks.push({id: Date.now() + Math.floor(Math.random()*10000), name, emoji: '📌', status, project, tags: [], description: '', pomosPlanned, pomosDone: 0});
+    const planMins = parts.length > 1 && parseInt(parts[parts.length-1].trim()) > 0
+      ? parseInt(parts[parts.length-1].trim()) : 25;
+    tasks.push({id: Date.now() + Math.floor(Math.random()*10000), name, emoji: '📌', status, project, tags: [], description: '', pomosPlanned: planMins, pomosDone: 0, timeMinutes: null});
   });
   save(); renderAll();
   if (document.getElementById('view-list').classList.contains('active')) renderList();
@@ -1014,23 +1059,77 @@ function doImport() {
   notify('✅ Импортировано: ' + lines.length + ' задач');
 }
 
+// JSON SAVE / LOAD
+function saveJSON() {
+  const data = { projectName, tasks, pomLog, savedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const now = new Date();
+  const date = now.toISOString().slice(0,10);
+  const time = String(now.getHours()).padStart(2,'0') + '-' + String(now.getMinutes()).padStart(2,'0');
+  const safeName = (projectName || 'taskflow').replace(/[^a-zA-Zа-яА-Я0-9_\- ]/g,'').trim().replace(/\s+/g,'_');
+  const filename = safeName + '_' + date + '_' + time + '.json';
+  a.download = filename;
+  a.click();
+  notify('💾 ' + filename);
+}
+
+function loadJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data.tasks)) throw new Error('Неверный формат');
+      tasks = data.tasks;
+      pomLog = data.pomLog || [];
+      if (data.projectName) {
+        projectName = data.projectName;
+        document.getElementById('project-name').value = projectName;
+      }
+      save();
+      renderAll();
+      if (document.getElementById('view-list').classList.contains('active')) renderList();
+      if (document.getElementById('view-export').classList.contains('active')) renderExport();
+      notify('✅ Загружено: ' + tasks.length + ' задач');
+    } catch(err) {
+      notify('❌ Ошибка: ' + err.message);
+    }
+    // reset input so same file can be loaded again
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
 if (Notification && Notification.permission === 'default') Notification.requestPermission();
 
 // INIT
 buildEmojiGrid();
 switchPhase('focus');
+document.getElementById('project-name').value = projectName;
 
 if (!tasks.length) {
   tasks = [
-    {id:1,name:'Прочитать документацию API v3',emoji:'📝',status:'📥 To Do',project:'💼 Work',tags:['docs','backend'],description:'Изучить новый API, особенно раздел авторизации и rate limits.',pomosPlanned:2,pomosDone:0,minutesSpent:0},
-    {id:2,name:'Пофиксить баг с JWT',emoji:'🐛',status:'⚡ Doing',project:'💼 Work',tags:['bug','urgent'],description:'После обновления библиотеки JWT сессии не сохраняются.',pomosPlanned:3,pomosDone:1,minutesSpent:25},
-    {id:3,name:'Новый уровень в игре',emoji:'🎮',status:'📥 To Do',project:'🎮 Gaming',tags:['fun'],description:'',pomosPlanned:1,pomosDone:0,minutesSpent:0},
-    {id:4,name:'Записать гитарную партию',emoji:'🎵',status:'🔥 Blocked',project:'🎵 Music',tags:['creative','studio'],description:'Ждём студию. Аккорды готовы, нужна запись.',pomosPlanned:4,pomosDone:0,minutesSpent:0},
-    {id:5,name:'Написать README.md',emoji:'✅',status:'✅ Done',project:'💼 Work',tags:['docs'],description:'',pomosPlanned:1,pomosDone:1,minutesSpent:25},
+    {id:1,name:'Прочитать документацию API v3',emoji:'📝',status:'📥 To Do',project:'💼 Work',tags:['docs','backend'],description:'Изучить новый API, особенно раздел авторизации и rate limits.',pomosPlanned:50,pomosDone:0,timeMinutes:null},
+    {id:2,name:'Пофиксить баг с JWT',emoji:'🐛',status:'⚡ Doing',project:'💼 Work',tags:['bug','urgent'],description:'После обновления библиотеки JWT сессии не сохраняются.',pomosPlanned:75,pomosDone:25,timeMinutes:null},
+    {id:3,name:'Новый уровень в игре',emoji:'🎮',status:'📥 To Do',project:'🎮 Gaming',tags:['fun'],description:'',pomosPlanned:25,pomosDone:0,timeMinutes:null},
+    {id:4,name:'Записать гитарную партию',emoji:'🎵',status:'🔥 Blocked',project:'🎵 Music',tags:['creative','studio'],description:'Ждём студию. Аккорды готовы, нужна запись.',pomosPlanned:100,pomosDone:0,timeMinutes:null},
+    {id:5,name:'Написать README.md',emoji:'✅',status:'✅ Done',project:'💼 Work',tags:['docs'],description:'',pomosPlanned:25,pomosDone:25,timeMinutes:null},
   ];
   save();
 }
 renderAll();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
 </script>
 </body>
 </html>
